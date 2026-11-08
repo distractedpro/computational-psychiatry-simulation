@@ -1,12 +1,24 @@
 import numpy as np
 
 class HealthyAgent:
-    def __init__(self, alpha = 0.1, beta = 2.0):
+    def __init__(self, alpha = 0.1, beta = 2.0, is_depressed = True):
         #core variables of behavioural loop
 
-        self.alpha = alpha  #learning rate
+        
         self.beta = beta  #inverse temperature for softmax action selection(impulsivity vs rationality)
         self.q_values = np.zeros(2)  # Memory. Initial expectations for two choices (0 and 1)
+
+        # -- THE DEPRESSION MODULAR SWITCH --
+        self.is_depressed = is_depressed  # Depression state of the agent
+
+        # -- HEDONIC (LIKING) PARAMETER --
+        # If true, throttles sensory reward input to 40% intensity
+        self.reward_blunt_factor = 0.4 if is_depressed else 1.0
+        
+        # -- MOTIVATIONAL (WANTING) PARAMETER --
+        # If true, positive updates crawl at 0.02. Disappointments stay at 0.1
+        self.alpha_gain = 0.02 if is_depressed else alpha 
+        self.alpha_loss = alpha  
 
     def act(self):
         #mathematical translation of choice
@@ -22,8 +34,14 @@ class HealthyAgent:
 
     def learn (self, choice, reward):
 
-        # calculating dopamine (surprise factor)
-        prediction_error = reward - self.q_values[choice]  # Calculate prediction error
+        #1. THE LIKING FILTER (Serotonergic Glitch)
+        perceived_reward = reward * self.reward_blunt_factor
 
-        #updating memory
-        self.q_values[choice] = self.q_values[choice] + (self.alpha * prediction_error)  # Update Q-value based on prediction error
+        #2. THE DOPAMINE SPIKE (Muted prediction error)
+        prediction_error = perceived_reward - self.q_values[choice]
+
+        #3. THE WANTING UPDATE (Dopaminergic learning glitch)
+        if prediction_error > 0:
+            self.q_values[choice] += self.alpha_gain * prediction_error
+        else:
+            self.q_values[choice] += self.alpha_loss * prediction_error
