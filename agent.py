@@ -1,24 +1,30 @@
 import numpy as np
 
 class HealthyAgent:
-    def __init__(self, alpha = 0.1, beta = 2.0, is_depressed = True):
+    def __init__(self, alpha = 0.1, beta = 2.0, stage = 1):
         #core variables of behavioural loop
 
         
         self.beta = beta  #inverse temperature for softmax action selection(impulsivity vs rationality)
         self.q_values = np.zeros(2)  # Memory. Initial expectations for two choices (0 and 1)
 
-        # -- THE DEPRESSION MODULAR SWITCH --
-        self.is_depressed = is_depressed  # Depression state of the agent
+        # -- THE SEVERITY DIAL: 0 = Healthy, 1 = Ruminating, 2 = Anhedonic --
+        self.stage = stage  # Stage of the agent
 
-        # -- HEDONIC (LIKING) PARAMETER --
+        # --STAGE 1: RUMINATION PARAMETER--
+        # Inflates loss learning (Lateral Habenula hyperreactivity) if stage is 1 or higher
+        self.alpha_loss = 0.4 if self.stage >= 1 else alpha 
+
+        # -- STAGE 2: ANHEDONIA (LIKING) PARAMETER --
+        # only blunts sensory reward input if stage is 2 or higher
         # If true, throttles sensory reward input to 40% intensity
-        self.reward_blunt_factor = 0.4 if is_depressed else 1.0
+        self.reward_blunt_factor = 0.4 if self.stage >= 2 else 1.0
         
-        # -- MOTIVATIONAL (WANTING) PARAMETER --
+        # -- STAGE 3: ANHEDONIA (WANTING) PARAMETER --
+        # Only slows positive learning if stage is 2 or higher
         # If true, positive updates crawl at 0.02. Disappointments stay at 0.1
-        self.alpha_gain = 0.02 if is_depressed else alpha 
-        self.alpha_loss = alpha  
+        self.alpha_gain = 0.02 if self.stage >= 2 else alpha 
+         
 
     def act(self):
         #mathematical translation of choice
